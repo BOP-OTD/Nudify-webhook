@@ -1,32 +1,44 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
+from pathlib import Path
+from datetime import datetime
 
 app = FastAPI()
 
+UPLOAD_DIR = Path("uploads")
+UPLOAD_DIR.mkdir(exist_ok=True)
+
 @app.get("/")
 def root():
-    return {"ok": True, "note": "Webhook is at /undress-photo-webhook (or rename for cartoonify)"}
+    return {
+        "ok": True,
+        "message": "Webhook server running",
+        "webhook_endpoint": "/cartoonify-photo-webhook",
+        "expects_form_fields": ["id_gen", "image"]
+    }
 
-@app.post("/undress-photo-webhook")
-async def undress_photo_webhook(request: Request):
-    content_type = request.headers.get("content-type", "")
-    print("CONTENT-TYPE:", content_type)
+# Use THIS endpoint for cartoonify (rename if you want)
+@app.post("/cartoonify-photo-webhook")
+async def cartoonify_photo_webhook(
+    id_gen: str = Form(...),
+    image: UploadFile = File(...),
+    webhook: str = Form(None)  # optional, provider sends it but we don't need it
+):
+    # Make a clean filename
+    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    suffix = Path(image.filename).suffix or ".jpg"
+    filename = f"cartoonify_{id_gen}_{ts}{suffix}"
+    outpath = UPLOAD_DIR / filename
 
-    # If the provider sends JSON
-    if "application/json" in content_type:
-        data = await request.json()
-        print("WEBHOOK JSON:", data)
-        return JSONResponse({"ok": True, "type": "json"})
+    # Save the uploaded file bytes
+    content = await image.read()
+    outpath.write_bytes(content)
 
-    # If the provider sends form-data (common for file uploads)
-    form = await request.form()
-    keys = list(form.keys())
-    print("WEBHOOK FORM KEYS:", keys)
+    print(f"✅ Saved: {outpath}")
 
-    # Identify file fields (if any)
-    for k in keys:
-        v = form.get(k)
-        if hasattr(v, "filename"):
-            print(f"FILE FIELD: {k} filename={v.filename} content_type={getattr(v, 'content_type', None)}")
-
-    return JSONResponse({"ok": True, "type": "form", "keys": keys})
+    return JSONResponse({
+        "ok": True,
+        "saved_file": str(outpath),
+        "id_gen": id_gen,
+        "content_type": image.content_type
+    })
