@@ -6,14 +6,8 @@ import httpx
 from fastapi import FastAPI, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse
 
-from telegram import Update
-from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
-tg_app.add_handler(CommandHandler("buy30", buy_30))
-tg_app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
-tg_app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
-
-from telegram import LabeledPrice
-from telegram.ext import PreCheckoutQueryHandler
+from telegram import Update, LabeledPrice
+from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, PreCheckoutQueryHandler, filters
 
 USER_CREDITS = {}  # user_id -> credits
 
@@ -161,6 +155,9 @@ async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 tg_app.add_handler(CommandHandler("start", start_cmd))
+tg_app.add_handler(CommandHandler("buy30", buy_30))
+tg_app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
+tg_app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
 tg_app.add_handler(MessageHandler(filters.PHOTO, on_photo))
 tg_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
 
