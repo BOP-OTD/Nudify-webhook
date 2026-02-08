@@ -13,13 +13,13 @@ def root():
     return {
         "ok": True,
         "message": "Webhook server running",
-        "webhook_endpoint": "/cartoonify-photo-webhook",
+        "webhook_endpoint": "/undress-photo-webhook",
         "expects_form_fields": ["id_gen", "image"]
     }
 
-# Use THIS endpoint for cartoonify (rename if you want)
-@app.post("/cartoonify-photo-webhook")
-async def cartoonify_photo_webhook(
+# Use THIS endpoint for undress (rename if you want)
+@app.post("/undress-photo-webhook")
+async def undress_photo_webhook(
     id_gen: str = Form(...),
     image: UploadFile = File(...),
     webhook: str = Form(None)  # optional, provider sends it but we don't need it
@@ -27,7 +27,7 @@ async def cartoonify_photo_webhook(
     # Make a clean filename
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
     suffix = Path(image.filename).suffix or ".jpg"
-    filename = f"cartoonify_{id_gen}_{ts}{suffix}"
+    filename = f"undress_{id_gen}_{ts}{suffix}"
     outpath = UPLOAD_DIR / filename
 
     # Save the uploaded file bytes
