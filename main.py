@@ -105,12 +105,13 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Send me a photo and I’ll undress it."
     )
-user_id = update.effective_user.id
-if USER_CREDITS.get(user_id, 0) <= 0:
-    await update.message.reply_text("You have 0 credits. Type /buy30 to buy credits with Stars.")
-    return
 
 async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    if USER_CREDITS.get(user_id, 0) <= 0:
+        await update.message.reply_text("You have 0 credits. Type /buy30 to buy credits with Stars.")
+        return
+
     chat_id = update.effective_chat.id
 
     # Get the highest-res photo
@@ -153,7 +154,7 @@ async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(f"API start error: {r.status_code} {r.text[:300]}")
         return
         
-        USER_CREDITS[user_id] -= 1
+    USER_CREDITS[user_id] -= 1
 
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Send a photo to undress.")
