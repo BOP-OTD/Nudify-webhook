@@ -72,7 +72,7 @@ async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     webhook_url = f"{PUBLIC_BASE_URL}/undress-photo-webhook"
 
-    await update.message.reply_text("Queued. I’ll send the cartoon when it’s ready…")
+    await update.message.reply_text("Queued. I’ll send the nude when it’s ready…")
 
     # Submit job to the undress API (START endpoint)
     headers = {}
