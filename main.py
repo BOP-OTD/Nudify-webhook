@@ -8,6 +8,54 @@ from fastapi.responses import JSONResponse
 
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, ContextTypes, filters
+tg_app.add_handler(CommandHandler("buy30", buy_30))
+tg_app.add_handler(PreCheckoutQueryHandler(precheckout_handler))
+tg_app.add_handler(MessageHandler(filters.SUCCESSFUL_PAYMENT, successful_payment_handler))
+
+from telegram import LabeledPrice
+from telegram.ext import PreCheckoutQueryHandler
+
+USER_CREDITS = {}  # user_id -> credits
+
+# Pack definitions (change prices/credits whenever you want)
+PACKS = {
+    "pack_30": {"credits": 30, "stars": 100},
+    "pack_75": {"credits": 75, "stars": 220},
+    "pack_250": {"credits": 250, "stars": 600},
+}
+async def buy_30(update, context):
+    pack_id = "pack_30"
+    pack = PACKS[pack_id]
+
+    await context.bot.send_invoice(
+        chat_id=update.effective_chat.id,
+        title=f"{pack['credits']} Credits",
+        description="Credits for undress jobs",
+        payload=pack_id,           # tells us which pack was bought
+        provider_token="",         # IMPORTANT: Stars uses empty provider_token
+        currency="XTR",            # IMPORTANT: Stars currency
+        prices=[LabeledPrice(label="Credits", amount=pack["stars"])],
+    )
+
+async def precheckout_handler(update, context):
+    # REQUIRED: without this, payment fails
+    await update.pre_checkout_query.answer(ok=True)
+
+async def successful_payment_handler(update, context):
+    sp = update.message.successful_payment
+    pack_id = sp.invoice_payload
+    pack = PACKS.get(pack_id)
+
+    if not pack:
+        await update.message.reply_text("Payment received but pack not recognized. Contact support.")
+        return
+
+    user_id = update.effective_user.id
+    USER_CREDITS[user_id] = USER_CREDITS.get(user_id, 0) + pack["credits"]
+
+    await update.message.reply_text(
+        f"✅ Payment successful!\nAdded {pack['credits']} credits.\nNew balance: {USER_CREDITS[user_id]}"
+    )
 
 app = FastAPI()
 
@@ -57,6 +105,10 @@ async def start_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Send me a photo and I’ll undress it."
     )
+user_id = update.effective_user.id
+if USER_CREDITS.get(user_id, 0) <= 0:
+    await update.message.reply_text("You have 0 credits. Type /buy30 to buy credits with Stars.")
+    return
 
 async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     chat_id = update.effective_chat.id
@@ -100,6 +152,8 @@ async def on_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         JOB_MAP.pop(id_gen, None)
         await update.message.reply_text(f"API start error: {r.status_code} {r.text[:300]}")
         return
+        
+        USER_CREDITS[user_id] -= 1
 
 async def on_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Send a photo to undress.")
